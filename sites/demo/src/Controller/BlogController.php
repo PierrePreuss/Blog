@@ -2,6 +2,10 @@
 
 namespace App\Controller;
 
+use App\Entity\Comment;
+use App\Entity\User;
+use App\Form\CommentType;
+use App\Form\RegistrationType;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,7 +28,7 @@ use App\Form\ArticleType;
 class BlogController extends AbstractController
 {
     /**
-     * @Route("/blog", name="blog")
+     * @Route("/", name="blog")
      */
     public function index(ArticleRepository $repo)
     {
@@ -44,12 +48,12 @@ class BlogController extends AbstractController
         ]);
     }
 
-    /**
-     * @Route("/", name="home")
-     */
-    public function home(){
-        return $this->render('blog/home.html.twig');
-    }
+//    /**
+//     * @Route("/", name="home")
+//     */
+//    public function home(){
+//        return $this->render('blog/home.html.twig');
+//    }
 
 
     /**
@@ -101,7 +105,20 @@ class BlogController extends AbstractController
      * @Route("/blog/{id}", name="blog_show")
      */
 
-    public function show(Article $article){
+    public function show(Article $article, Request $request, ObjectManager $manager){
+        $comment = new Comment();
+        $form = $this->createForm(CommentType::class, $comment);
+
+        $form->handleRequest($request);
+
+        if($form->isSubmitted() && $form->isValid()){
+            $comment->setCreatedAt(new \DateTime())
+                ->setArticle($article);
+            $manager->persist($comment);
+            $manager->flush();
+
+            return $this->redirectToRoute('blog_show', ['id' => $article->getId()]);
+        }
         //$repo = $this->getDoctrine()->getRepository(Article::class);
 
         //idem que pour index, plus besoin d'utiliser la ligne du dessus si déclaration dans fonction de ArticleRepository $repo.
@@ -112,9 +129,11 @@ class BlogController extends AbstractController
         //car grâce à la route, symfony arrive à faire une relation entre l'id et l'article.
 
         return $this->render('blog/show.html.twig', [
-            'article' => $article
+            'article' => $article,
+            'commentForm' => $form->createView()
         ]);
     }
+
 
 
 }
